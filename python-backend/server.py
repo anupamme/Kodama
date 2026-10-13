@@ -6,6 +6,8 @@ Starte mit: python server.py
 
 from flask import Flask, jsonify, request, Response
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from ytmusicapi import YTMusic
 import sys, os, json, glob, threading, time, requests, sqlite3, uuid, collections
 
@@ -18,6 +20,11 @@ CORS(app, origins=[
     "http://localhost",
     "http://127.0.0.1",
 ])
+# ── Rate limiting ─────────────────────────────────────────────────────────
+# Server binds to 0.0.0.0, so CORS alone doesn't stop direct API calls (e.g. curl)
+# flooding endpoints like /auth/refresh-cookies or /feedback. Apply a sane global
+# cap to blunt brute force / resource-exhaustion against all 100+ routes.
+limiter = Limiter(get_remote_address, app=app, default_limits=["300 per minute"])
 
 # ── In-memory log ring so bug reports can attach the most recent backend output ──
 _LOG_RING = collections.deque(maxlen=300)
